@@ -1,0 +1,19 @@
+{
+  "name": "Let me reject",
+  "description": "Auto removes or rejects cookie prompts",
+  "version": "1.0",
+  "manifest_version": 3,
+  "permissions": ["scripting", "activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+        "id": "letmereject@hdev"
+    }
+  }
+}
