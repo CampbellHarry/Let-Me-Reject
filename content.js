@@ -18,6 +18,7 @@
         let found = false;
         selectors.forEach(sel => {
             document.querySelectorAll(sel).forEach(container => {
+                let rejectFound = false;
                 container.querySelectorAll("button, input[type='button'], a").forEach(el => {
                     if (
                         (el.offsetParent !== null) &&
@@ -27,11 +28,21 @@
                         )
                     ) {
                         el.click();
+                        rejectFound = true;
                         found = true;
                     }
                 });
-                container.remove();
-                found = true;
+                if (rejectFound) {
+                    container.remove();
+                }
+                // if there is no reject button check to see if it's a cookie banner
+                if (!rejectFound && container.offsetParent !== null) {
+                    const isCookieBanner = selectors.some(s => container.matches(s));
+                    if (isCookieBanner) {
+                        container.remove();
+                        found = true;
+                    }
+                }
             });
         });
 
