@@ -35,13 +35,17 @@
                 if (rejectFound) {
                     container.remove();
                 }
-                // if there is no reject button check to see if it's a cookie banner
-                if (!rejectFound && container.offsetParent !== null) {
-                    const isCookieBanner = selectors.some(s => container.matches(s));
-                    if (isCookieBanner) {
-                        container.remove();
-                        found = true;
-                    }
+                // Only remove container if it contains cookie-related text and no reject button was found
+                if (
+                    !rejectFound &&
+                    container.offsetParent !== null &&
+                    (
+                        container.innerText?.toLowerCase().includes('cookie') ||
+                        container.innerText?.toLowerCase().includes('consent')
+                    )
+                ) {
+                    container.remove();
+                    found = true;
                 }
             });
         });
