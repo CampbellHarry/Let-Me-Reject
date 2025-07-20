@@ -2,8 +2,10 @@
     const rejectTexts = [
         "Reject", "Only necessary", "Decline", "Reject all", "Deny", "No thanks", "Disagree",
         "Refuse", "Opt out", "Do not accept", "Do not consent", "Disable", "Turn off", "Manage choices",
-        "Continue without accepting", "Continue without consent", "Essential only", "Necessary only", "Reject cookies"
+        "Continue without accepting", "Continue without consent", "Essential only", "Necessary only",
+        "Reject cookies", "Use essential cookies only", "Customize settings"
     ];
+
     const selectors = [
         '[id*="cookie"]',
         '[class*="cookie"]',
@@ -11,46 +13,73 @@
         '[data-testid*="cookie"]',
         '[role="dialog"]',
         '[id*="consent"]',
-        '[class*="consent"]'
+        '[class*="consent"]',
+        '[class*="gdpr"]',
+        '[class*="privacy"]'
     ];
 
-    function removeCookieElements() {
-        let found = false;
+    function clickRejectButtons(container) {
+        let clicked = false;
+        const buttons = container.querySelectorAll("button, input[type='button'], a");
+        buttons.forEach(btn => {
+            const text = (btn.innerText || btn.value || "").toLowerCase().trim();
+            if (
+                btn.offsetParent !== null &&
+                rejectTexts.some(t => text.includes(t.toLowerCase()))
+            ) {
+                try {
+                    btn.click();
+                    clicked = true;
+                } catch (e) {}
+            }
+        });
+        return clicked;
+    }
+
+    function removeConsentElements() {
+        let handled = false;
         selectors.forEach(sel => {
             document.querySelectorAll(sel).forEach(container => {
-                container.querySelectorAll("button, input[type='button'], a").forEach(el => {
-                    if (
-                        (el.offsetParent !== null) &&
-                        (
-                            rejectTexts.some(t => el.innerText?.toLowerCase().includes(t.toLowerCase())) ||
-                            rejectTexts.some(t => el.value?.toLowerCase().includes(t.toLowerCase()))
-                        )
-                    ) {
-                        el.click();
-                        found = true;
-                    }
-                });
-                container.remove();
-                found = true;
+                if (clickRejectButtons(container)) {
+                    setTimeout(() => {
+                        try {
+                            container.remove();
+                        } catch (e) {}
+                    }, 1000);
+                    handled = true;
+                }
             });
         });
 
-        if (found) {
-            document.body.style.setProperty('overflow', 'auto', 'important');
-            document.body.style.setProperty('position', 'static', 'important');
-            document.body.style.setProperty('margin-top', '0px', 'important');
-            document.body.style.setProperty('top', '0px', 'important');
-            document.body.style.setProperty('left', '0px', 'important');
-            document.body.style.setProperty('right', '0px', 'important');
-            document.body.classList.remove('cookie-consent', 'cookie-banner', 'cookie-notice', 'cookie-popup');
+        if (handled) {
+            const body = document.body;
+            if (body) {
+                body.style.setProperty('overflow', 'auto', 'important');
+                body.classList.remove('nn-consent-applies', 'nn-consent-gdpr');
+            }
         }
 
-        return found;
+        return handled;
     }
 
     const intervalId = setInterval(() => {
-        if (removeCookieElements()) {
+        if (removeConsentElements()) {
             clearInterval(intervalId);
         }
-    }, 200);
+    }, 300);
+
+    const observer = new MutationObserver(() => removeConsentElements());
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+
+    const patchSetAttribute = () => {
+        const original = HTMLElement.prototype.setAttribute;
+        HTMLElement.prototype.setAttribute = function (name, value) {
+            if (name === 'class' && typeof value === 'string') {
+                value = value.replace(/\bnn-consent-applies\b|\bnn-consent-gdpr\b/g, '');
+            }
+            return original.apply(this, arguments);
+        };
+    };
+
+    patchSetAttribute();
 })();
